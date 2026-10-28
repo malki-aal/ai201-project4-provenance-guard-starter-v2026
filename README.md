@@ -282,7 +282,33 @@ The label is the reader-facing `unsure` variant; the appeal response confirms th
 }
 ```
 
-This confirms the appeal event is persisted under the submitted content ID. The original `decided` audit entry still needs to be shown to verify both records together.
+This confirms the appeal event is persisted under the submitted content ID. The original `decided` audit entry was subsequently supplied from the local log and matches the same `content_id`. The complete observed decision-to-appeal audit trail is:
+
+```json
+[
+  {
+    "combined_score": 0.5373,
+    "content_id": "6da8c519-01f4-4bb6-8ebd-62f35cf92e6c",
+    "creator_id": "milestone5-test",
+    "guess": "unsure",
+    "label": "We cannot reliably tell whether a person or AI wrote this text, so no authorship conclusion should be drawn.",
+    "model_score": 0.5684,
+    "status": "decided",
+    "style_score": 0.5063,
+    "timestamp": "2026-10-28T23:18:17+00:00"
+  },
+  {
+    "content_id": "6da8c519-01f4-4bb6-8ebd-62f35cf92e6c",
+    "creator_id": "milestone5-test",
+    "event": "appeal",
+    "reasoning": "I wrote this myself and can provide my drafts.",
+    "status": "under_review",
+    "timestamp": "2026-10-28T23:18:43+00:00"
+  }
+]
+```
+
+Both records were independently supplied from the user's local `GET /log` output. The append-only log retains the original decision while recording the appeal under the same ID.
 
 ## Sample Run
 
