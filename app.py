@@ -199,17 +199,54 @@ def submit():
     what should this do when `text` is missing, empty, or enormous? A crash on
     a malformed input is one of the most common real failures there is.
     """
-    payload = request.get_json(silent=True) or {}
+    # Milestone 3: only the provided local model signal is active.
+    # Milestone 4 adds stylometry and the combining rule.
+    import detector
 
-    # TODO: delete this and build the route.
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_json", "message": "Expected a JSON object."}), 400
+
+    text = payload.get("text")
+    creator_id = payload.get("creator_id")
+    if not isinstance(text, str) or not text.strip():
+        return jsonify({"error": "invalid_text", "message": "text must be a nonempty string."}), 400
+    if not isinstance(creator_id, str) or not creator_id.strip():
+        return jsonify({"error": "invalid_creator_id", "message": "creator_id must be a nonempty string."}), 400
+    if len(text) > 20000:
+        return jsonify({"error": "text_too_long", "message": "text must be at most 20000 characters."}), 413
+
+    try:
+        model_score = detector.model_signal(text)
+    except detector.DetectorUnavailable as exc:
+        return jsonify({"error": "detector_unavailable", "message": str(exc)}), 503
+    except ValueError as exc:
+        return jsonify({"error": "unscorable_text", "message": str(exc)}), 400
+
+    content_id = str(uuid.uuid4())
+    # The final guess, confidence, and label are intentionally placeholders.
+    # A score alone is not enough to assert authorship.
+    guess = "unsure"
+    confidence = 0.0
+    label = "Pending full evaluation; only the model signal has run."
+    audit.log_decision(
+        content_id=content_id,
+        creator_id=creator_id,
+        guess=guess,
+        model_score=model_score,
+        style_score=None,
+        combined_score=None,
+        label=label,
+        status="decided",
+    )
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /submit isn't built yet — see the TODO in app.py.",
-        "you_sent": {
-            "text_length": len(payload.get("text", "")),
-            "creator_id": payload.get("creator_id"),
-        },
-    }), 501
+        "content_id": content_id,
+        "guess": guess,
+        "confidence": confidence,
+        "label": label,
+        "model_score": model_score,
+        "style_score": None,
+    }), 200
 
 
 @app.post("/appeal")
