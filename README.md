@@ -79,7 +79,7 @@ A score describes patterns in text; it does not prove who wrote it. This is the 
 
 **The rule:** Compute an equal-weight average of the two 0–1 signals. If their absolute difference is at least 0.45, move the combined score halfway toward 0.50 to represent disagreement and reduce overconfident classifications. Implemented in Milestone 4; not yet calibrated on a verified dataset.
 
-**The numbers:** `base = 0.50 × model_score + 0.50 × style_score`; if `abs(model_score - style_score) >= 0.45`, use `combined = 0.50 + 0.50 × (base - 0.50)`; otherwise `combined = base`. Weights are in `config.py`. Proposed thresholds for Milestone 5: human at or below 0.30; unsure above 0.30 and below 0.80; AI at or above 0.80. Thresholds remain unimplemented placeholders until Milestone 5.
+**The numbers:** `base = 0.50 × model_score + 0.50 × style_score`; if `abs(model_score - style_score) >= 0.45`, use `combined = 0.50 + 0.50 × (base - 0.50)`; otherwise `combined = base`. Weights are in `config.py`. Implemented Milestone 5 thresholds: human at or below 0.30; unsure above 0.30 and below 0.80; AI-like at or above 0.80.
 
 **Where it lives:** `scoring.py::combine_signals`
 
@@ -96,7 +96,7 @@ A score describes patterns in text; it does not prove who wrote it. This is the 
 
 The style signal now uses three normalized features: (1) sentence-length coefficient of variation, with low spread considered more AI-like (weight 0.40); (2) unique-word ratio from the first 50 words, with lower diversity considered more AI-like (weight 0.40); and (3) comma/semicolon/colon/question/exclamation/dash marks per word, with fewer marks considered more AI-like (weight 0.20). Normalization caps are 0.75, 0.90, and 0.12 respectively. These are **heuristic choices**, not empirical accuracy estimates. A one-sentence passage has zero measured spread, and short text is unreliable.
 
-The `/submit` response and `audit.log_decision` now include `model_score`, `style_score`, and `combined_score`. `guess`, `confidence`, and the reader label remain placeholders for Milestone 5. The current API has not yet been verified locally after these changes.
+The `/submit` response and `audit.log_decision` now include `model_score`, `style_score`, and `combined_score`. `guess`, `confidence`, and the reader label are now computed in Milestone 5. The new API response still needs local verification; the sample below documents the older Milestone 4 version.
 
 **Observed three-passage style calibration (local terminal):**
 
@@ -146,9 +146,11 @@ python stylometry.py "The project was interesting because it helped me learn abo
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human | 0.00–0.30 | This writing has patterns more commonly associated with human writing, but the system cannot verify who wrote it. |
-| unsure | above 0.30, below 0.80 | We cannot reliably tell whether this writing was produced by a person or AI. This is not an accusation. |
-| high-confidence AI | 0.80–1.00 | This writing has patterns associated with AI-generated text. This is not proof of AI use, and you may appeal the result. |
+| high-confidence human | 0.00–0.30 (inclusive) | We think this was probably written by a person, but this result is not proof of authorship. |
+| unsure | above 0.30, below 0.80 | We cannot reliably tell whether a person or AI wrote this text, so no authorship conclusion should be drawn. |
+| high-confidence AI | 0.80–1.00 (inclusive) | This writing has patterns often found in AI-generated text, but this result cannot establish who wrote it. |
+
+These are the exact strings returned by `scoring.py::score_to_label`. The high-confidence wording refers to score bands, **not verified authorship**. Run `python -c "import scoring; print(scoring.label_ranges())"` to inspect ranges. To verify all branches without relying on model behavior, run `python -c "from scoring import score_to_label; print([score_to_label(x) for x in (0.2, 0.5, 0.9)])"`. These are mapping unit checks, not three actual text submissions.
 
 **Why I worded the "unsure" one this way:** A real writer can be flagged because their work is polished or conventional. The label should acknowledge uncertainty without implying misconduct. For example, a human-authored essay might hypothetically receive model_score 0.92, style_score 0.80, combined 0.86, and the AI-like label. The writer should receive a content ID and be able to appeal with a reason and supporting drafts; the appeal should move the item to under_review and be logged. These are illustrative scores, not observed test results.
 <!-- It's the hardest of the three. It has to admit uncertainty without
@@ -159,7 +161,7 @@ python stylometry.py "The project was interesting because it helped me learn abo
 
 ---
 
-## Endpoint contracts (design; not yet implemented)
+## Endpoint contracts (implemented; local Milestone 5 testing pending)
 
 **POST /submit** accepts JSON: `text` (required, nonempty string containing writing) and `creator_id` (required, nonempty string identifying the writer). Reject missing, non-string, empty, or oversized text with HTTP 400 or 413 as appropriate; document a maximum before implementation. On success (HTTP 200), return `content_id` (unique string), `guess` (`human`, `unsure`, or `ai`), `confidence` (number 0–1, confidence in the guess, not proof of authorship), `label` (full reader-facing sentence), `model_score` (number 0–1), and `style_score` (number 0–1). The combined score is used internally for label mapping and audit logging. Log the submission using `audit.log_decision`.
 
@@ -221,6 +223,23 @@ curl "http://127.0.0.1:5000/log?limit=3"
 **What to verify:** `/submit` returns HTTP 200 with a nonempty `content_id`, numeric `model_score`, placeholder `guess`/`confidence`/`label`, and `style_score: null`. The `/log` response must contain an entry with the **same** `content_id`, `creator_id`, `model_score`, `status: "decided"`, and a timestamp. The actual outputs still need to be pasted into the Sample Run section below.
 
 **Testing limitation:** The intermediate hardcoded-response-then-curl checkpoint and live model tests were not performed in this environment; they should not be reported as passed.
+
+### Milestone 5 — local verification still needed
+
+The label mapping and `POST /appeal` route have been implemented and committed, but **the actual updated `/submit`, `/appeal`, and `GET /log` responses have not yet been supplied from the user's local server**. Do not present examples as observed output. Appeals are appended to the audit log with the same `content_id`, `event: "appeal"`, `status: "under_review"`, and the writer's `reasoning`; the original decision is preserved. The latest status for the content ID is therefore `under_review`.
+
+After pulling and restarting `python app.py`, run in a second PowerShell terminal:
+
+```powershell
+$body = @{text="Yesterday I missed the bus because I stopped to help my neighbor pick up a bag of oranges. I got to class late, with sticky fingers and a funny story to tell."; creator_id="milestone5-test"} | ConvertTo-Json
+$submission = Invoke-RestMethod "http://127.0.0.1:5000/submit" -Method Post -ContentType "application/json" -Body $body
+$submission | ConvertTo-Json
+$appealBody = @{content_id=$submission.content_id; reasoning="I wrote this myself and can provide my drafts."} | ConvertTo-Json
+Invoke-RestMethod "http://127.0.0.1:5000/appeal" -Method Post -ContentType "application/json" -Body $appealBody | ConvertTo-Json
+(Invoke-RestMethod "http://127.0.0.1:5000/log").entries | Where-Object { $_.content_id -eq $submission.content_id } | ConvertTo-Json -Depth 5
+```
+
+Paste the **real** submission, appeal, and matching log output below in Sample Run after testing. Also submit real text producing all three labels. If the extreme labels are difficult to reach, report that honestly; `label_ranges()` describes mapping bands, not actual model output reachability.
 
 ## Sample Run
 
