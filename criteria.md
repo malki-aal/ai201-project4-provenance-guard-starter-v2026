@@ -42,63 +42,43 @@ Two things worth knowing before you pick numbers:
   a **miss**.
 
 ---
-## 1.
+## 1. False positives on human writing
 
-<!-- Your criterion. It must name a number. -->
+Across each of three evaluation trials, of 10 independently verified human-written passages, **at most 1 of 10** may receive the **high-confidence AI** label. Use the same 10 passages per trial and record each individual label.
 
-
-
-**Why this target:**
-
-
+**Why this target:** A false accusation can harm a real writer more than a missed AI-generated passage harms the service. Allowing no more than one high-confidence false positive in ten is a demanding, checkable starting target rather than a promise of perfect detection.
 
 ---
 
-## 2.
+## 2. Score separation between human and AI examples
 
-<!-- Your criterion. -->
+In **each of three trials**, the median combined AI-likelihood score of 10 clearly AI-generated passages must exceed the median score of 10 independently verified human-written passages by **at least 0.20** on the 0–1 scale. Keep the two sets fixed across trials.
 
-
-
-**Why this target:**
-
-
+**Why this target:** If the two groups score nearly the same, the combined signal is not meaningfully separating them. A 0.20 median gap requires a noticeable difference while allowing individual passages to overlap.
 
 ---
 
-## 3.
+## 3. All three labels are reachable
 
-<!-- Your criterion. -->
+In **each of three trials**, a fixed test set containing at least **20 diverse submissions** must produce **at least one** instance of each of the three labels: **high-confidence human**, **unsure**, and **high-confidence AI**. Count labels from actual `POST /submit` responses, not manually supplied scores.
 
-
-
-**Why this target:**
-
-
+**Why this target:** A label that exists in code but never appears to readers is not useful. Requiring all three from real requests also checks that the score combination and threshold mapping work together.
 
 ---
 
-## 4.
+## 4. Appeals change status and leave an audit trail
 
-<!-- Your criterion. -->
+In **each of three trials**, submit **5 valid appeals** for 5 existing, distinct `content_id` values. **All 5 of 5** must receive a successful response, change the submission status to `under_review`, and create a corresponding appeal entry in the audit log containing the matching `content_id` and reasoning. Also submit **one unknown `content_id`** per trial; it must return **HTTP 404** without creating a valid appeal.
 
-
-
-**Why this target:**
-
-
+**Why this target:** A person wrongly labeled AI needs a reliable way to challenge the decision. Recording every valid appeal makes the process reviewable, while rejecting unknown IDs prevents meaningless or misleading appeal records.
 
 ---
 
-## 5.
+## 5. Invalid input is rejected without crashing
 
-<!-- Your criterion. -->
+In **each of three trials**, test these **5 invalid `POST /submit` requests**: missing `text`, empty `text`, whitespace-only `text`, numeric `text`, and text longer than **20,000 characters**. **All 5 of 5** must return a JSON error with a 4xx status (400 for malformed fields; 413 for oversized text), and **none** may return HTTP 500 or a successful classification. A valid submission immediately afterward must still receive a normal response.
 
-
-
-**Why this target:**
-
-
+**Why this target:** Bad input should not crash the service or generate a misleading authorship verdict. A 20,000-character ceiling is a concrete resource safeguard for a local model, and testing recovery afterward checks that an error does not break later requests.
 
 ---
 
