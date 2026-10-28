@@ -310,6 +310,19 @@ This confirms the appeal event is persisted under the submitted content ID. The 
 
 Both records were independently supplied from the user's local `GET /log` output. The append-only log retains the original decision while recording the appeal under the same ID.
 
+### Milestone 5 — observed live label-reachability tests
+
+Four actual text submissions to the local Flask service produced the following outputs (higher scores are more AI-like):
+
+| Test passage | Model score | Style score | Combined score | Actual guess |
+|---|---:|---:|---:|---|
+| AI-style | 0.8404 | 0.3589 | 0.5498 | `unsure` |
+| Human-style (illustrative, not verified authorship) | 0.5684 | 0.5063 | 0.5373 | `unsure` |
+| Repetitive | 0.9872 | 0.9259 | 0.9566 | `ai` |
+| Varied | 0.4684 | 0.1754 | 0.3219 | `unsure` |
+
+These are the user's real `POST /submit` results, not predicted scores. The `ai` and `unsure` branches are reachable with real text. The `human` branch (score at or below 0.30) **has not yet been reached**; the varied sample is closest at 0.3219. The score ranges themselves have no gaps, but actual text reachability is a separate test. No threshold changes were made to force a passing result.
+
 ## Sample Run
 
 ### Milestone 3 — verified responses
