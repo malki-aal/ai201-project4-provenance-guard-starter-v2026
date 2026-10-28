@@ -124,6 +124,10 @@ The first passage provides an **observed disagreement**: the model score is 0.84
 
 This confirms both signals and the combined score appear in the response. The average is 0.53735, rounded by Python to 0.5373. The final guess, confidence and label remain Milestone 5 placeholders. An audit-log entry matching this content ID has not yet been verified.
 
+**Verified human-written reflection — observed disagreement (same `$humanText` variable):**
+
+The author supplied their own reflection on sports drinks and electrolytes and ran both command-line detectors on the same `$humanText` variable. The model reported perplexity **12.5** and model signal **0.8864**. Stylometry reported sentence-length spread **0.3214**, type-token ratio **0.9091**, punctuation density **0.0000**, and style signal **0.4286**. Their difference is **0.4578**, above the disagreement threshold of 0.45. The unadjusted average is **0.6575**, and the disagreement-adjusted score is **0.57875** (the final four-decimal representation should be verified by running `scoring.combine_signals` locally). This is an observed false-positive **risk** from the model signal on self-reported human writing, not a validated classification or a live `/submit` result.
+
 **Local testing still required:** Run `python stylometry.py "your passage"` on the same three passages used with `detector.py`. Then run both signals on four deliberately chosen passages: clearly AI, genuinely human-authored, formal human-authored, and lightly edited AI-generated text. Record the **actual** model, style, and combined scores for each. Identify one observed disagreement and discuss which signal likely caused it. Do not label a generated example as verified human writing.
 
 ```powershell
