@@ -64,8 +64,10 @@ def sentence_length_spread(text: str) -> float:
     `stdev` raises on fewer than two values. Decide what that should return
     before the attack set decides for you.
     """
-    # TODO: replace this
-    return 0.0
+    lengths = [len(words(s)) for s in sentences(text)]
+    if len(lengths) < 2 or not any(lengths):
+        return 0.0
+    return round(statistics.pstdev(lengths) / statistics.mean(lengths), 4)
 
 
 def type_token_ratio(text: str) -> float:
