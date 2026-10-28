@@ -321,7 +321,17 @@ Four actual text submissions to the local Flask service produced the following o
 | Repetitive | 0.9872 | 0.9259 | 0.9566 | `ai` |
 | Varied | 0.4684 | 0.1754 | 0.3219 | `unsure` |
 
-These are the user's real `POST /submit` results, not predicted scores. The `ai` and `unsure` branches are reachable with real text. The `human` branch (score at or below 0.30) **has not yet been reached**; the varied sample is closest at 0.3219. The score ranges themselves have no gaps, but actual text reachability is a separate test. No threshold changes were made to force a passing result.
+These are the user's real `POST /submit` results, not predicted scores. The `ai` and `unsure` branches were reached in this first set. The human branch was subsequently reached in a second set of tests below. No thresholds were changed to force a passing result.
+
+**Additional observed live submissions:**
+
+| Test passage | Model score | Style score | Combined score | Actual guess |
+|---|---:|---:|---:|---|
+| Personal story | 0.5905 | 0.1693 | 0.3799 | `unsure` |
+| Unusual vocabulary | 0.2245 | 0.2162 | 0.2203 | `human` |
+| Conversational | 0.6387 | 0.0156 | 0.4136 | `unsure` |
+
+**All three label branches have now been observed from real text submissions:** `human` (unusual vocabulary, 0.2203), `unsure` (human-style illustrative passage, 0.5373), and `ai` (repetitive passage, 0.9566). These labels indicate model behavior, not independently verified text authorship.
 
 ## Sample Run
 
