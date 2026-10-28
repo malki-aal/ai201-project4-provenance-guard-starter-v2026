@@ -103,10 +103,26 @@ The `/submit` response and `audit.log_decision` now include `model_score`, `styl
 | Passage | Model score (prior test) | Style score | Combined score (computed with current rule) |
 |---|---:|---:|---:|
 | AI-style | 0.8404 | 0.3589 | 0.5498 |
-| Human-style | 0.5684 | 0.5063 | 0.5374 |
+| Human-style | 0.5684 | 0.5063 | 0.5373 |
 | In-between | 0.5968 | 0.4538 | 0.5253 |
 
 The first passage provides an **observed disagreement**: the model score is 0.8404 while the style score is 0.3589, a difference of 0.4815. The initial average is 0.59965; disagreement moderation moves it to 0.549825 (rounded to 0.5498). The combined numbers are calculated from the observed component scores, **not yet observed from a live updated API response**. The first style test reported vocabulary ratio 0.9118 and punctuation density 0.0882; the second reported sentence spread 0.125, vocabulary ratio 0.8438 and punctuation density 0.0312; the third reported sentence spread 0.1538, vocabulary ratio 0.9231 and punctuation density 0.0385. The first test's sentence spread was not provided.
+
+**Observed Milestone 4 API response (local `POST /submit`):**
+
+```json
+{
+  "combined_score": 0.5373,
+  "confidence": 0.0,
+  "content_id": "4fb26dad-1d9b-43fc-a123-71e2db0e5208",
+  "guess": "unsure",
+  "label": "Pending final label mapping; both signals have been evaluated.",
+  "model_score": 0.5684,
+  "style_score": 0.5063
+}
+```
+
+This confirms both signals and the combined score appear in the response. The average is 0.53735, rounded by Python to 0.5373. The final guess, confidence and label remain Milestone 5 placeholders. An audit-log entry matching this content ID has not yet been verified.
 
 **Local testing still required:** Run `python stylometry.py "your passage"` on the same three passages used with `detector.py`. Then run both signals on four deliberately chosen passages: clearly AI, genuinely human-authored, formal human-authored, and lightly edited AI-generated text. Record the **actual** model, style, and combined scores for each. Identify one observed disagreement and discuss which signal likely caused it. Do not label a generated example as verified human writing.
 
