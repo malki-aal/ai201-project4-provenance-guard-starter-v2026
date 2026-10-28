@@ -129,8 +129,16 @@ def style_signal(text: str) -> float:
     you trust it. Plain and ordinary, not formal: formal prose reads as *human*
     to signal one, and it is plain writing that gets accused.
     """
-    # TODO: replace this
-    return 0.5
+    if len(words(text)) < 8:
+        return 0.5
+    spread = sentence_length_spread(text)
+    diversity = type_token_ratio(text)
+    density = punctuation_density(text)
+    spread_ai = 1.0 - min(spread / 0.75, 1.0)
+    diversity_ai = 1.0 - min(diversity / 0.90, 1.0)
+    punctuation_ai = 1.0 - min(density / 0.12, 1.0)
+    score = 0.4 * spread_ai + 0.4 * diversity_ai + 0.2 * punctuation_ai
+    return round(max(0.0, min(1.0, score)), 4)
 
 
 if __name__ == "__main__":
