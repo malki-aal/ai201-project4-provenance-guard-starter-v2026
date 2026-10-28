@@ -179,6 +179,45 @@ curl "http://127.0.0.1:5000/log?limit=3"
 
 ## Sample Run
 
+### Milestone 3 — verified responses
+
+Submission command (PowerShell):
+
+```powershell
+$body = @{
+  text = "Yesterday I missed the bus because I stopped to help my neighbor pick up a bag of oranges. I got to class late, with sticky fingers and a funny story to tell."
+  creator_id = "malakai"
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/submit" -Method Post -ContentType "application/json" -Body $body | ConvertTo-Json
+```
+
+Actual submission response:
+
+```json
+{"confidence":0.0,"content_id":"00cc65e5-9010-438c-b06a-1bed9124b282","guess":"unsure","label":"Pending full evaluation; only the model signal has run.","model_score":0.5684,"style_score":null}
+```
+
+Log command:
+
+```powershell
+Invoke-RestMethod "http://127.0.0.1:5000/log?limit=5" | ConvertTo-Json -Depth 5
+```
+
+Actual log response:
+
+```json
+{
+  "count": 2,
+  "entries": [
+    {"combined_score":null,"content_id":"817b6df8-7985-4620-9700-fbaabb122217","creator_id":"malakai","guess":"unsure","label":"Pending full evaluation; only the model signal has run.","model_score":0.5684,"status":"decided","style_score":null,"timestamp":"2026-10-28T22:51:58+00:00"},
+    {"combined_score":null,"content_id":"00cc65e5-9010-438c-b06a-1bed9124b282","creator_id":"malakai","guess":"unsure","label":"Pending full evaluation; only the model signal has run.","model_score":0.5684,"status":"decided","style_score":null,"timestamp":"2026-10-28T22:52:28+00:00"}
+  ]
+}
+```
+
+The second audit entry matches the submitted content ID. The second signal, combined score, final label, and appeal route are for later milestones.
+
+
 <!-- One submission and one appeal, pasted as text: the request, the response,
      and the log entries. -->
 
