@@ -202,6 +202,8 @@ def submit():
     # Milestone 3: only the provided local model signal is active.
     # Milestone 4 adds stylometry and the combining rule.
     import detector
+    import stylometry
+    import scoring
 
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
@@ -223,19 +225,22 @@ def submit():
     except ValueError as exc:
         return jsonify({"error": "unscorable_text", "message": str(exc)}), 400
 
+    style_score = stylometry.style_signal(text)
+    combined_score = scoring.combine_signals(model_score, style_score)
+
     content_id = str(uuid.uuid4())
-    # The final guess, confidence, and label are intentionally placeholders.
+    # Final guess and reader-facing label are still Milestone 5 placeholders.
     # A score alone is not enough to assert authorship.
     guess = "unsure"
     confidence = 0.0
-    label = "Pending full evaluation; only the model signal has run."
+    label = "Pending final label mapping; both signals have been evaluated."
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
         guess=guess,
         model_score=model_score,
-        style_score=None,
-        combined_score=None,
+        style_score=style_score,
+        combined_score=combined_score,
         label=label,
         status="decided",
     )
@@ -245,7 +250,8 @@ def submit():
         "confidence": confidence,
         "label": label,
         "model_score": model_score,
-        "style_score": None,
+        "style_score": style_score,
+        "combined_score": combined_score,
     }), 200
 
 
