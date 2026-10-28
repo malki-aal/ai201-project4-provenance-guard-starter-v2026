@@ -269,17 +269,20 @@ These responses were copied from the user's local PowerShell run after updating 
 }
 ```
 
-The label is the reader-facing `unsure` variant; the appeal response confirms the status change. The user also supplied this **partial** appeal log output (the matching content ID and original decision entry were not included in the pasted excerpt):
+The label is the reader-facing `unsure` variant; the appeal response confirms the status change. The user supplied this observed appeal audit-log entry (the original `decided` entry was not included in the pasted output):
 
 ```json
 {
+  "content_id": "6da8c519-01f4-4bb6-8ebd-62f35cf92e6c",
+  "creator_id": "milestone5-test",
+  "event": "appeal",
   "reasoning": "I wrote this myself and can provide my drafts.",
   "status": "under_review",
   "timestamp": "2026-10-28T23:18:43+00:00"
 }
 ```
 
-The full matching audit-log records still need verification.
+This confirms the appeal event is persisted under the submitted content ID. The original `decided` audit entry still needs to be shown to verify both records together.
 
 ## Sample Run
 
