@@ -229,11 +229,9 @@ def submit():
     combined_score = scoring.combine_signals(model_score, style_score)
 
     content_id = str(uuid.uuid4())
-    # Final guess and reader-facing label are still Milestone 5 placeholders.
-    # A score alone is not enough to assert authorship.
-    guess = "unsure"
-    confidence = 0.0
-    label = "Pending final label mapping; both signals have been evaluated."
+    guess, label = scoring.score_to_label(combined_score)
+    # Confidence measures distance from uncertainty, not probability of authorship.
+    confidence = round(abs(combined_score - 0.5) * 2, 4)
     audit.log_decision(
         content_id=content_id,
         creator_id=creator_id,
@@ -275,14 +273,35 @@ def appeal():
     to the person on the other end. It's the only thing standing between a
     wrong accusation and nothing at all.
     """
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_json", "message": "Expected a JSON object."}), 400
 
-    # TODO: delete this and build the route.
+    content_id = payload.get("content_id")
+    reasoning = payload.get("reasoning")
+    if not isinstance(content_id, str) or not content_id.strip():
+        return jsonify({"error": "invalid_content_id", "message": "content_id must be a nonempty string."}), 400
+    if not isinstance(reasoning, str) or not reasoning.strip():
+        return jsonify({"error": "invalid_reasoning", "message": "reasoning must be a nonempty string."}), 400
+
+    content_id = content_id.strip()
+    original = next(
+        (entry for entry in audit.entries_for(content_id)
+         if entry.get("status") == "decided"),
+        None,
+    )
+    if original is None:
+        return jsonify({"error": "not_found", "message": "No original decision exists for that content_id."}), 404
+
+    if any(entry.get("event") == "appeal" for entry in audit.entries_for(content_id)):
+        return jsonify({"error": "already_under_review", "message": "An appeal is already under review."}), 409
+
+    audit.log_appeal(content_id, original["creator_id"], reasoning.strip())
     return jsonify({
-        "error": "not_implemented",
-        "message": "POST /appeal isn't built yet — see the TODO in app.py.",
-        "you_sent": payload,
-    }), 501
+        "content_id": content_id,
+        "status": "under_review",
+        "message": "Your appeal has been recorded and is awaiting review.",
+    }), 200
 
 
 # ── Already works ─────────────────────────────────────────────────────────────
