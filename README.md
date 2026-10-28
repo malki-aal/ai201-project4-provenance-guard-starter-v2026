@@ -98,6 +98,16 @@ The style signal now uses three normalized features: (1) sentence-length coeffic
 
 The `/submit` response and `audit.log_decision` now include `model_score`, `style_score`, and `combined_score`. `guess`, `confidence`, and the reader label remain placeholders for Milestone 5. The current API has not yet been verified locally after these changes.
 
+**Observed three-passage style calibration (local terminal):**
+
+| Passage | Model score (prior test) | Style score | Combined score (computed with current rule) |
+|---|---:|---:|---:|
+| AI-style | 0.8404 | 0.3589 | 0.5498 |
+| Human-style | 0.5684 | 0.5063 | 0.5374 |
+| In-between | 0.5968 | 0.4538 | 0.5253 |
+
+The first passage provides an **observed disagreement**: the model score is 0.8404 while the style score is 0.3589, a difference of 0.4815. The initial average is 0.59965; disagreement moderation moves it to 0.549825 (rounded to 0.5498). The combined numbers are calculated from the observed component scores, **not yet observed from a live updated API response**. The first style test reported vocabulary ratio 0.9118 and punctuation density 0.0882; the second reported sentence spread 0.125, vocabulary ratio 0.8438 and punctuation density 0.0312; the third reported sentence spread 0.1538, vocabulary ratio 0.9231 and punctuation density 0.0385. The first test's sentence spread was not provided.
+
 **Local testing still required:** Run `python stylometry.py "your passage"` on the same three passages used with `detector.py`. Then run both signals on four deliberately chosen passages: clearly AI, genuinely human-authored, formal human-authored, and lightly edited AI-generated text. Record the **actual** model, style, and combined scores for each. Identify one observed disagreement and discuss which signal likely caused it. Do not label a generated example as verified human writing.
 
 ```powershell
