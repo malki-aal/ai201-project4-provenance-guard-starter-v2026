@@ -94,7 +94,9 @@ def score_to_label(score: float) -> tuple[str, str]:
     milestone.
     """
     # TODO: replace this — thresholds are in config.py
-    if not 0.0 <= score <= 1.0:\n        raise ValueError("Score must be between 0 and 1.")\n    if score >= config.AI_THRESHOLD:
+    if not 0.0 <= score <= 1.0:
+        raise ValueError("Score must be between 0 and 1.")
+    if score >= config.AI_THRESHOLD:
         return "ai", "This writing has patterns often found in AI-generated text, but this result cannot establish who wrote it."
     if score <= config.HUMAN_THRESHOLD:
         return "human", "We think this was probably written by a person, but this result is not proof of authorship."
