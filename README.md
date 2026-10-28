@@ -241,6 +241,36 @@ Invoke-RestMethod "http://127.0.0.1:5000/appeal" -Method Post -ContentType "appl
 
 Paste the **real** submission, appeal, and matching log output below in Sample Run after testing. Also submit real text producing all three labels. If the extreme labels are difficult to reach, report that honestly; `label_ranges()` describes mapping bands, not actual model output reachability.
 
+### Milestone 5 — observed submission and appeal
+
+These responses were copied from the user's local PowerShell run after updating the Milestone 5 code. The original submission and appeal share the same real `content_id`. **The matching `GET /log` output has not yet been supplied or verified.**
+
+**Observed `POST /submit` response:**
+
+```json
+{
+  "combined_score": 0.5373,
+  "confidence": 0.0746,
+  "content_id": "6da8c519-01f4-4bb6-8ebd-62f35cf92e6c",
+  "guess": "unsure",
+  "label": "We cannot reliably tell whether a person or AI wrote this text, so no authorship conclusion should be drawn.",
+  "model_score": 0.5684,
+  "style_score": 0.5063
+}
+```
+
+**Observed `POST /appeal` response:**
+
+```json
+{
+  "content_id": "6da8c519-01f4-4bb6-8ebd-62f35cf92e6c",
+  "message": "Your appeal has been recorded and is awaiting review.",
+  "status": "under_review"
+}
+```
+
+The label is the reader-facing `unsure` variant; the appeal response confirms the status change. The local audit log still needs to be checked for the corresponding decision and appeal event.
+
 ## Sample Run
 
 ### Milestone 3 — verified responses
