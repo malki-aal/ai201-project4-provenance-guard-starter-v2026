@@ -77,20 +77,35 @@ A score describes patterns in text; it does not prove who wrote it. This is the 
 <!-- Write the rule in words, then give the numbers. What happens when the two
      signals disagree? -->
 
-**The rule:** Start with an equally weighted average of the two 0–1 signals; if they strongly disagree, treat the result as uncertain rather than letting one override the other. This is a design decision to test in Milestone 4, not a validated probability.
+**The rule:** Compute an equal-weight average of the two 0–1 signals. If their absolute difference is at least 0.45, move the combined score halfway toward 0.50 to represent disagreement and reduce overconfident classifications. Implemented in Milestone 4; not yet calibrated on a verified dataset.
 
-**The numbers:** `combined = 0.50 × model_score + 0.50 × style_score`. Both scores increase toward AI-like. Proposed thresholds for Milestone 5: human at or below 0.30; unsure above 0.30 and below 0.80; AI at or above 0.80. These differ from the current `config.py` placeholders and must be synchronized when implemented.
+**The numbers:** `base = 0.50 × model_score + 0.50 × style_score`; if `abs(model_score - style_score) >= 0.45`, use `combined = 0.50 + 0.50 × (base - 0.50)`; otherwise `combined = base`. Weights are in `config.py`. Proposed thresholds for Milestone 5: human at or below 0.30; unsure above 0.30 and below 0.80; AI at or above 0.80. Thresholds remain unimplemented placeholders until Milestone 5.
 
 **Where it lives:** `scoring.py::combine_signals`
 
 <!-- ⚠️ The grader checks your code against that line. If your rule lives
      somewhere else, say where. -->
 
-**A case where my two signals split, and what my rule does with it:** Hypothetical model score 0.90 and style score 0.10 produce 0.50, which falls in the unsure band. Neither signal alone justifies accusing the writer.
+**A case where my two signals split, and what my rule does with it:** Hypothetical model score 0.90 and style score 0.10 give a base of 0.50; disagreement is 0.80, so the moderation rule leaves the combined score at 0.50. This is an illustrative split, not yet a measured one.
 
 
 
 ---
+
+### Milestone 4 — implementation and calibration plan
+
+The style signal now uses three normalized features: (1) sentence-length coefficient of variation, with low spread considered more AI-like (weight 0.40); (2) unique-word ratio from the first 50 words, with lower diversity considered more AI-like (weight 0.40); and (3) comma/semicolon/colon/question/exclamation/dash marks per word, with fewer marks considered more AI-like (weight 0.20). Normalization caps are 0.75, 0.90, and 0.12 respectively. These are **heuristic choices**, not empirical accuracy estimates. A one-sentence passage has zero measured spread, and short text is unreliable.
+
+The `/submit` response and `audit.log_decision` now include `model_score`, `style_score`, and `combined_score`. `guess`, `confidence`, and the reader label remain placeholders for Milestone 5. The current API has not yet been verified locally after these changes.
+
+**Local testing still required:** Run `python stylometry.py "your passage"` on the same three passages used with `detector.py`. Then run both signals on four deliberately chosen passages: clearly AI, genuinely human-authored, formal human-authored, and lightly edited AI-generated text. Record the **actual** model, style, and combined scores for each. Identify one observed disagreement and discuss which signal likely caused it. Do not label a generated example as verified human writing.
+
+```powershell
+git pull origin main
+python stylometry.py "The implementation of this system provides several important benefits. First, it improves efficiency and consistency. Second, it allows users to process information more effectively. Finally, it offers a reliable approach to completing common tasks."
+python stylometry.py "Yesterday I missed the bus because I stopped to help my neighbor pick up a bag of oranges. I got to class late, with sticky fingers and a funny story to tell."
+python stylometry.py "The project was interesting because it helped me learn about technology. Some parts were difficult, but I worked through the problems and eventually finished the assignment."
+```
 
 ## Label Variants
 
