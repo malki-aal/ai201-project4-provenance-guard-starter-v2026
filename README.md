@@ -44,7 +44,7 @@
 6. `scoring.py::score_to_label` maps the combined score to human, unsure, or AI, using explicit thresholds and reader-friendly language.
 7. `audit.log_decision` records the decision and both signals; the API sends the `content_id`, scores, guess, confidence, and label back to the reader. A writer can challenge it through `POST /appeal`.
 
-A score describes patterns in text; it does not prove who wrote it. This is the proposed design, not a claim that the unfinished routes already work.
+The service now implements submission, both signals, score combining, reader-facing labels, appeals, and an append-only audit trail. Local testing verified all three label branches and a linked decision/appeal pair. A score describes patterns in text; it does not prove who wrote it.
 
 ---
 
@@ -94,7 +94,7 @@ A score describes patterns in text; it does not prove who wrote it. This is the 
 
 ### Milestone 4 — implementation and calibration plan
 
-The style signal now uses three normalized features: (1) sentence-length coefficient of variation, with low spread considered more AI-like (weight 0.40); (2) unique-word ratio from the first 50 words, with lower diversity considered more AI-like (weight 0.40); and (3) comma/semicolon/colon/question/exclamation/dash marks per word, with fewer marks considered more AI-like (weight 0.20). Normalization caps are 0.75, 0.90, and 0.12 respectively. These are **heuristic choices**, not empirical accuracy estimates. A one-sentence passage has zero measured spread, and short text is unreliable.
+The style signal uses three normalized features: (1) sentence-length coefficient of variation, with low spread considered more AI-like (weight 0.40); (2) unique-word ratio from the first 50 words, with lower diversity considered more AI-like (weight 0.40); and (3) comma/semicolon/colon/question/exclamation/dash marks per word, with fewer marks considered more AI-like (weight 0.20). Normalization caps are 0.75, 0.90, and 0.12 respectively. These are **heuristic choices**, not empirical accuracy estimates. A one-sentence passage has zero measured spread, and short text is unreliable.
 
 The `/submit` response and `audit.log_decision` now include `model_score`, `style_score`, and `combined_score`. `guess`, `confidence`, and the reader label are now computed in Milestone 5. The new API response still needs local verification; the sample below documents the older Milestone 4 version.
 
@@ -420,17 +420,17 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 ## How I Used AI
 
-**Moment 1**
+**Moment 1 — implementing and checking the two-signal detector**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked ChatGPT to help implement a second, writing-style signal, combine it with the GPT-2 model signal, and explain how disagreement should affect the score.
+- *What came back:* It suggested sentence-length spread, type-token ratio, and punctuation density, with an equal-weight combination and a rule that moves scores toward uncertainty when the signals disagree strongly.
+- *What I changed:* I tested the implementation on my own writing about sports drinks and electrolytes, rather than relying on invented scores. My reflection received model score 0.8864 and style score 0.4286, showing a disagreement and a possible false-positive risk. I used those real results to document the limitation.
 
-**Moment 2**
+**Moment 2 — labels, appeal route, and debugging**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked ChatGPT to implement three plain-language labels, connect them to `/submit`, and build an appeal route that records the writer's reasoning.
+- *What came back:* It committed the label mapping and appeal handler, but an initial edit to `scoring.py` accidentally included literal `\\n` characters and caused a Python `SyntaxError`.
+- *What I changed:* I reported the traceback, had the faulty code corrected, and reran the application locally. I submitted real passages that reached `human`, `unsure`, and `ai`, then submitted an appeal and checked the matching `decided` and `under_review` audit entries. I kept the observed results in this README instead of treating suggested test outcomes as facts.
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
