@@ -269,7 +269,17 @@ These responses were copied from the user's local PowerShell run after updating 
 }
 ```
 
-The label is the reader-facing `unsure` variant; the appeal response confirms the status change. The local audit log still needs to be checked for the corresponding decision and appeal event.
+The label is the reader-facing `unsure` variant; the appeal response confirms the status change. The user also supplied this **partial** appeal log output (the matching content ID and original decision entry were not included in the pasted excerpt):
+
+```json
+{
+  "reasoning": "I wrote this myself and can provide my drafts.",
+  "status": "under_review",
+  "timestamp": "2026-10-28T23:18:43+00:00"
+}
+```
+
+The full matching audit-log records still need verification.
 
 ## Sample Run
 
