@@ -134,6 +134,30 @@ python detector.py "The report describes several useful observations. Some resul
 
 The first is an **AI-written test example**; the other two are **illustrative sample passages**, not verified human-authored or borderline ground truth. For the required calibration, replace them with a passage you personally wrote and a passage you judge borderline. Record the three actual `perplexity` and `model_signal` outputs here after running them.
 
+**Observed detector calibration (user's local terminal):**
+
+| Passage | Perplexity | Model signal (higher = more AI-like) |
+|---|---:|---:|
+| AI-style sample | 15.9 | 0.8404 |
+| Human-style sample | 37.9 | 0.5684 |
+| In-between sample | 35.2 | 0.5968 |
+
+These are real `python detector.py` outputs from three sample passages. They are not proof of authorship or independently verified classification accuracy. The terminal also printed a nonfatal `loss_type=None` warning and used the default `ForCausalLMLoss`.
+
+**Initial API test (unsuccessful; PowerShell quoting issue):**
+
+```json
+{"error": "invalid_json", "message": "Expected a JSON object."}
+```
+
+The malformed `curl.exe` command also printed multiple `Could not resolve host` errors. A subsequent `GET /log?limit=3` returned:
+
+```json
+{"count": 0, "entries": []}
+```
+
+This is expected for an invalid request: no successful submission had been logged. **A successful submission response and matching audit entry have not yet been supplied.** On Windows PowerShell, retry with `Invoke-RestMethod` and `ConvertTo-Json` to avoid shell-quoting errors.
+
 **Step 2 — start the service and send a real submission:**
 
 ```bash
