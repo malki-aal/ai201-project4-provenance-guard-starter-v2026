@@ -36,10 +36,15 @@
 
 ## What This Does
 
-<!-- The path a submission takes, from arriving to the label a reader sees.
-     Six or seven steps — this is the trace you wrote in Milestone 1. -->
+1. A writer sends JSON containing `text` and `creator_id` to `POST /submit`.
+2. The Flask route validates the request and assigns a unique `content_id`, so a decision can be traced and appealed.
+3. `detector.py::model_signal` runs the provided local language model and returns a 0–1 predictability-based AI-like score.
+4. `stylometry.py::style_signal` measures sentence-length spread, vocabulary repetition, and punctuation patterns, producing a separate 0–1 AI-like score.
+5. `scoring.py::combine_signals` combines those scores. Disagreement should reduce certainty, not become an accusation.
+6. `scoring.py::score_to_label` maps the combined score to human, unsure, or AI, using explicit thresholds and reader-friendly language.
+7. `audit.log_decision` records the decision and both signals; the API sends the `content_id`, scores, guess, confidence, and label back to the reader. A writer can challenge it through `POST /appeal`.
 
-
+A score describes patterns in text; it does not prove who wrote it. This is the proposed design, not a claim that the unfinished routes already work.
 
 ---
 
@@ -53,35 +58,35 @@
 
 ### Signal one — the model signal
 
-**What it measures:**
+**What it measures:** Predictability of the submitted text under the local language model, converted to an AI-like score. It is not a direct authorship observation.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** Generated text can favor probable next words and conventional sequences, making some passages easier for a model to predict.
 
-**What it can't see:**
+**What it can't see:** The writing history, drafts, intent, or whether a human deliberately wrote predictable prose. Edited or paraphrased AI text may also evade the pattern.
 
 ### Signal two — the style signal
 
-**What it measures:**
+**What it measures:** The shape of writing: normalized variation in sentence length, type-token ratio (unique words divided by total words), and punctuation density. The planned `style_signal` converts these to a 0–1 AI-like score.
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing:** Some generated passages use similarly sized sentences and repetitive, conventional phrasing, while human prose may vary more. These are tendencies, not rules.
 
-**What it can't see:**
+**What it can't see:** Meaning, authorship, writing history, or the difference between deliberate stylistic consistency and automation. Typos, inserted punctuation, quotations, and short passages can distort its measurements. Vocabulary ratio also changes with text length.
 
 ### The combining rule
 
 <!-- Write the rule in words, then give the numbers. What happens when the two
      signals disagree? -->
 
-**The rule:**
+**The rule:** Start with an equally weighted average of the two 0–1 signals; if they strongly disagree, treat the result as uncertain rather than letting one override the other. This is a design decision to test in Milestone 4, not a validated probability.
 
-**The numbers:**
+**The numbers:** `combined = 0.50 × model_score + 0.50 × style_score`. Both scores increase toward AI-like. Proposed thresholds for Milestone 5: human at or below 0.30; unsure above 0.30 and below 0.80; AI at or above 0.80. These differ from the current `config.py` placeholders and must be synchronized when implemented.
 
 **Where it lives:** `scoring.py::combine_signals`
 
 <!-- ⚠️ The grader checks your code against that line. If your rule lives
      somewhere else, say where. -->
 
-**A case where my two signals split, and what my rule does with it:**
+**A case where my two signals split, and what my rule does with it:** Hypothetical model score 0.90 and style score 0.10 produce 0.50, which falls in the unsure band. Neither signal alone justifies accusing the writer.
 
 
 
@@ -96,11 +101,11 @@
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human | 0.00–0.30 | This writing has patterns more commonly associated with human writing, but the system cannot verify who wrote it. |
+| unsure | above 0.30, below 0.80 | We cannot reliably tell whether this writing was produced by a person or AI. This is not an accusation. |
+| high-confidence AI | 0.80–1.00 | This writing has patterns associated with AI-generated text. This is not proof of AI use, and you may appeal the result. |
 
-**Why I worded the "unsure" one this way:**
+**Why I worded the "unsure" one this way:** A real writer can be flagged because their work is polished or conventional. The label should acknowledge uncertainty without implying misconduct. For example, a human-authored essay might hypothetically receive model_score 0.92, style_score 0.80, combined 0.86, and the AI-like label. The writer should receive a content ID and be able to appeal with a reason and supporting drafts; the appeal should move the item to under_review and be logged. These are illustrative scores, not observed test results.
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
@@ -108,6 +113,12 @@
 
 
 ---
+
+## Endpoint contracts (design; not yet implemented)
+
+**POST /submit** accepts JSON: `text` (required, nonempty string containing writing) and `creator_id` (required, nonempty string identifying the writer). Reject missing, non-string, empty, or oversized text with HTTP 400 or 413 as appropriate; document a maximum before implementation. On success (HTTP 200), return `content_id` (unique string), `guess` (`human`, `unsure`, or `ai`), `confidence` (number 0–1, confidence in the guess, not proof of authorship), `label` (full reader-facing sentence), `model_score` (number 0–1), and `style_score` (number 0–1). The combined score is used internally for label mapping and audit logging. Log the submission using `audit.log_decision`.
+
+**POST /appeal** accepts JSON: `content_id` (required string identifying an existing submission) and `reasoning` (required nonempty string explaining the dispute). Reject invalid fields with HTTP 400 and unknown IDs with HTTP 404. On success, call `audit.log_appeal` to record the dispute and change its status to `under_review`; return HTTP 200 JSON with `content_id` (string), `status` (`under_review`), and `message` (confirmation string). The appeal does not automatically reclassify the writing. Use consistent JSON error fields `error` and `message`.
 
 ## Sample Run
 
